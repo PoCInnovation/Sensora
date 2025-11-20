@@ -1,26 +1,30 @@
-> If you see this section, you've just created a repository using [PoC Innovation's Open-Source project template](https://github.com/PoCInnovation/open-source-project-template). Check the [getting started guide](./.github/getting-started.md).
+# 🧠 SenseTouch
 
-# [PROJECT'S NAME]
+Une interface multisensorielle pour aider les personnes aveugles à percevoir leur environnement grâce à l'IA, au son et au toucher.
 
-[Project's description]
+## 📌 Présentation du projet
 
-## How does it work?
+SenseTouch est un système innovant destiné à améliorer l'autonomie des personnes aveugles en combinant :
 
-[Explain how this project is working]
+- des lunettes intelligentes capables d'analyser l'environnement via l'IA,
+- et un gant haptique en braille dynamique transmettant l'information par pression.
 
-## Getting Started
+Aujourd'hui, les solutions existantes se limitent principalement aux lunettes connectées et exploitent très peu le sens du toucher, pourtant essentiel chez les personnes non voyantes.
 
-### Installation
+SenseTouch propose une nouvelle approche : transformer les informations visuelles en retours tactiles et sonores, de manière intuitive et naturelle.
 
-[Explain how to install all of the project's dependencies]
+## 🎯 Objectifs du projet
 
-### Quickstart
+- Développer un système sensoriel nouveau et complet pour transmettre l'information.
+- Exploiter le toucher via un gant haptique permettant d'activer chaque point braille individuellement.
+- Fournir une analyse temps réel de l'environnement grâce à l'IA (objets, obstacles, textes).
+- Offrir une communication orale fluide avec l'utilisateur.
+- Tester le dispositif avec des utilisateurs non-voyants, encadrés par des experts.
+- Concevoir un prototype fonctionnel combinant vision, audio et haptique.
 
-[Explain how to run this project]
+## 🧩 Architecture du système
 
-### Usage
-
-[Explain how to use this project]
+[À compléter]
 
 ## Get involved
 
@@ -35,7 +39,7 @@ Developers
 | :---: | :---: | :---: |
 
 Manager
-| [<img src="https://github.com/adrienfort.png?size=85" width=85><br><sub>[Manager's name]</sub>](https://github.com/adrienfort)
+| [<img src="https://github.com/Manmohit509.png?size=85" width=85><br><sub>Manmohit509</sub>](https://github.com/Manmohit509)
 | :---: |
 
 <h2 align=center>
