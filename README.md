@@ -35,7 +35,7 @@ If you're interested in how the project is organized at a higher level, please c
 ## Our PoC team ❤️
 
 Developers
-| [<img src="https://github.com/MrZalTy.png?size=85" width=85><br><sub>[Developer's name]</sub>](https://github.com/MrZalTy) | [<img src="https://github.com/MrZalTy.png?size=85" width=85><br><sub>[Developer's name]</sub>](https://github.com/MrZalTy) | [<img src="https://github.com/MrZalTy.png?size=85" width=85><br><sub>[Developer's name]</sub>](https://github.com/MrZalTy)
+| [<img src="https://github.com/Aa-D-Wlter.png?size=85" width=85><br><sub>Aa-D-Wlter</sub>](https://github.com/Aa-D-Wlter) | [<img src="https://github.com/PHILIPPEEwan.png?size=85" width=85><br><sub>PHILIPPE Ewan</sub>](https://github.com/PHILIPPEEwan) | [<img src="https://github.com/t1m0t-p.png?size=85" width=85><br><sub>Timothée</sub>](https://github.com/t1m0t-p)
 | :---: | :---: | :---: |
 
 Manager
