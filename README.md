@@ -1,34 +1,34 @@
-# 🧠 SenseTouch
+# 🧠 Sensora
 
-Une interface multisensorielle pour aider les personnes aveugles à percevoir leur environnement grâce à l'IA, au son et au toucher.
+A multisensory interface to help blind and visually impaired individuals perceive their environment through AI, sound, and touch.
 
-## 📌 Présentation du projet
+## 📌 Project Overview
 
-SenseTouch est un système innovant destiné à améliorer l'autonomie des personnes aveugles en combinant :
+Sensora is an innovative system designed to improve the autonomy of blind people by combining:
 
-- des lunettes intelligentes capables d'analyser l'environnement via l'IA,
-- et un gant haptique en braille dynamique transmettant l'information par pression.
+- smart glasses capable of analyzing the environment via AI,
+- and a haptic glove with dynamic braille that transmits information through pressure.
 
-Aujourd'hui, les solutions existantes se limitent principalement aux lunettes connectées et exploitent très peu le sens du toucher, pourtant essentiel chez les personnes non voyantes.
+Today, existing solutions are mainly limited to connected glasses and make very little use of the sense of touch, which is essential for visually impaired people.
 
-SenseTouch propose une nouvelle approche : transformer les informations visuelles en retours tactiles et sonores, de manière intuitive et naturelle.
+Sensora offers a new approach: transforming visual information into tactile and auditory feedback, in an intuitive and natural way.
 
-## 🎯 Objectifs du projet
+## 🎯 Project Goals
 
-- Développer un système sensoriel nouveau et complet pour transmettre l'information.
-- Exploiter le toucher via un gant haptique permettant d'activer chaque point braille individuellement.
-- Fournir une analyse temps réel de l'environnement grâce à l'IA (objets, obstacles, textes).
-- Offrir une communication orale fluide avec l'utilisateur.
-- Tester le dispositif avec des utilisateurs non-voyants, encadrés par des experts.
-- Concevoir un prototype fonctionnel combinant vision, audio et haptique.
+- Develop a new and complete sensory system to transmit information.
+- Leverage touch through a haptic glove that can activate each braille point individually.
+- Provide real-time environmental analysis using AI (objects, obstacles, texts).
+- Offer smooth voice communication with the user.
+- Test the device with blind users, supervised by experts.
+- Design a functional prototype combining vision, audio, and haptics.
 
-## 🧩 Architecture du système
+## 🧩 System Architecture
 
-[À compléter]
+[To be completed]
 
-## Get involved
+## Get Involved
 
-You're invited to join this project ! Check out the [contributing guide](./CONTRIBUTING.md).
+You're invited to join this project! Check out the [contributing guide](./CONTRIBUTING.md).
 
 If you're interested in how the project is organized at a higher level, please contact the current project manager.
 
@@ -67,6 +67,6 @@ Organization
     </a>
 </p>
 
-> 🚀 Don't hesitate to follow us on our different networks, and put a star 🌟 on `PoC's` repositories
+> 🚀 Feel free to follow us on our social networks and star 🌟 `PoC's` repositories
 
 > Made with ❤️ by PoC
