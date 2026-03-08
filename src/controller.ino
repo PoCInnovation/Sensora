@@ -1,19 +1,19 @@
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
-
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 
-#define SERVICE_UUID        "12345678-1234-1234-1234-1234567890ab"
-#define CHARACTERISTIC_UUID "abcd1234-5678-90ab-cdef-1234567890ab"
+#define SERVICE_UUID        "f46d35c6-518c-44d4-8fe4-bba375eea5a9"
+#define CHARACTERISTIC_UUID "3c5454f6-b1f7-4206-89f9-04677f4f467d"
 
 #define SERVO_MIN 150
 #define SERVO_MAX 600
 #define NB_SERVOS 16
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
-BLECharacteristic *pCharacteristic;
+bool deviceConnected = false;
+bool oldDeviceConnected = false;
 
 uint16_t angleToPulse(int angle) {
   return map(angle, 0, 180, SERVO_MIN, SERVO_MAX);
@@ -21,80 +21,92 @@ uint16_t angleToPulse(int angle) {
 
 void moveServo(int ch, int angle) {
   if (ch < 0 || ch >= NB_SERVOS) return;
-  if (angle < 0 || angle > 180) return;
   pwm.setPWM(ch, 0, angleToPulse(angle));
 }
 
-void moveMultipleServos(String list, int angle) {
-  list.trim();
+class MyServerCallbacks: public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) {
+      deviceConnected = true;
+      Serial.println("\n>>> Appareil CONNECTÉ !");
+    };
 
-  if (list == "ALL") {
-    for (int ch = 0; ch < NB_SERVOS; ch++) {
-      moveServo(ch, angle);
+    void onDisconnect(BLEServer* pServer) {
+      deviceConnected = false;
+      Serial.println("\n<<< Appareil DÉCONNECTÉ.");
     }
-    return;
-  }
-
-  int start = 0;
-  while (true) {
-    int comma = list.indexOf(',', start);
-    String token = (comma == -1)
-                   ? list.substring(start)
-                   : list.substring(start, comma);
-
-    moveServo(token.toInt(), angle);
-
-    if (comma == -1) break;
-    start = comma + 1;
-  }
-}
+};
 
 class MyCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pChar) override {
     std::string value = pChar->getValue();
-    if (value.length() == 0) return;
+    if (value.length() < 2) return;
 
-    String cmd = String(value.c_str());
-    Serial.print("Commande reçue : ");
-    Serial.println(cmd);
+    int angle = (uint8_t)value[0];
+    if (angle > 180) angle = 180;
 
-    int colon = cmd.indexOf(':');
-    if (colon == -1) return;
-    if (cmd[0] != 'S') return;
+    Serial.print("[Action] Angle : ");
+    Serial.print(angle);
+    Serial.print("° sur Servo(s) : ");
 
-    String servoPart = cmd.substring(1, colon);
-    int angle = cmd.substring(colon + 1).toInt();
-
-    moveMultipleServos(servoPart, angle);
+    for (int i = 1; i < value.length(); i++) {
+      uint8_t servoNum = (uint8_t)value[i];
+      if (servoNum == 255) {
+        Serial.print("TOUS ");
+        for (int ch = 0; ch < NB_SERVOS; ch++) moveServo(ch, angle);
+      } else if (servoNum < NB_SERVOS) {
+        Serial.print(servoNum);
+        Serial.print(" ");
+        moveServo(servoNum, angle);
+      }
+    }
+    Serial.println();
   }
 };
 
 void setup() {
   Serial.begin(115200);
-  delay(2000);
-  Serial.println("BOOT OK");
+  
+  while (!Serial) {
+    delay(10); 
+  }
 
-  Wire.begin(A4, A5);
+  Serial.println("\n--------------------------------------------------");
+  Serial.println("--- INITIALISATION DU SYSTÈME ---");
+
+  Wire.begin(); 
   pwm.begin();
   pwm.setPWMFreq(50);
-  delay(10);
-  Serial.println("PCA9685 prêt");
+  Serial.println("1. PCA9685 : OK (Fréquence 50Hz)");
 
   BLEDevice::init("NanoESP32-Servos");
   BLEServer *pServer = BLEDevice::createServer();
-  BLEService *pService = pServer->createService(SERVICE_UUID);
+  pServer->setCallbacks(new MyServerCallbacks());
 
-  pCharacteristic = pService->createCharacteristic(
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+  BLECharacteristic *pChar = pService->createCharacteristic(
     CHARACTERISTIC_UUID,
     BLECharacteristic::PROPERTY_WRITE
   );
 
-  pCharacteristic->setCallbacks(new MyCallbacks());
+  pChar->setCallbacks(new MyCallbacks());
   pService->start();
 
   BLEDevice::getAdvertising()->start();
-  Serial.println("BLE prêt pour commandes servos");
+  
+  Serial.println("2. Bluetooth : OK ('NanoESP32-Servos')");
+  Serial.println("3. Statut : En attente de connexion...");
+  Serial.println("--------------------------------------------------");
 }
 
 void loop() {
+    if (!deviceConnected && oldDeviceConnected) {
+        delay(500);
+        BLEDevice::getAdvertising()->start();
+        Serial.println("... Marketing relancé (Visible) ...");
+        oldDeviceConnected = deviceConnected;
+    }
+    
+    if (deviceConnected && !oldDeviceConnected) {
+        oldDeviceConnected = deviceConnected;
+    }
 }
