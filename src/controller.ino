@@ -65,15 +65,11 @@ class MyCallbacks : public BLECharacteristicCallbacks {
 
 void setup() {
   Serial.begin(115200);
-  
-  while (!Serial) {
-    delay(10); 
-  }
 
   Serial.println("\n--------------------------------------------------");
   Serial.println("--- SYSTEM INITIALISATION ---");
 
-  Wire.begin(); 
+  Wire.begin();
   pwm.begin();
   pwm.setPWMFreq(50);
   Serial.println("1. PCA9685 : OK (Frequence 50Hz)");
