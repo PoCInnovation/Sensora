@@ -27,12 +27,12 @@ void moveServo(int ch, int angle) {
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
       deviceConnected = true;
-      Serial.println("\n>>> Appareil CONNECTÉ !");
+      Serial.println("\n>>> Device CONNECTED !");
     };
 
     void onDisconnect(BLEServer* pServer) {
       deviceConnected = false;
-      Serial.println("\n<<< Appareil DÉCONNECTÉ.");
+      Serial.println("\n<<< Device DISCONNECTED.");
     }
 };
 
@@ -46,12 +46,12 @@ class MyCallbacks : public BLECharacteristicCallbacks {
 
     Serial.print("[Action] Angle : ");
     Serial.print(angle);
-    Serial.print("° sur Servo(s) : ");
+    Serial.print("° on Servo : ");
 
     for (int i = 1; i < value.length(); i++) {
       uint8_t servoNum = (uint8_t)value[i];
       if (servoNum == 255) {
-        Serial.print("TOUS ");
+        Serial.print("ALL ");
         for (int ch = 0; ch < NB_SERVOS; ch++) moveServo(ch, angle);
       } else if (servoNum < NB_SERVOS) {
         Serial.print(servoNum);
@@ -71,12 +71,12 @@ void setup() {
   }
 
   Serial.println("\n--------------------------------------------------");
-  Serial.println("--- INITIALISATION DU SYSTÈME ---");
+  Serial.println("--- SYSTEM INITIALISATION ---");
 
   Wire.begin(); 
   pwm.begin();
   pwm.setPWMFreq(50);
-  Serial.println("1. PCA9685 : OK (Fréquence 50Hz)");
+  Serial.println("1. PCA9685 : OK (Frequence 50Hz)");
 
   BLEDevice::init("NanoESP32-Servos");
   BLEServer *pServer = BLEDevice::createServer();
@@ -94,7 +94,7 @@ void setup() {
   BLEDevice::getAdvertising()->start();
   
   Serial.println("2. Bluetooth : OK ('NanoESP32-Servos')");
-  Serial.println("3. Statut : En attente de connexion...");
+  Serial.println("3. Status : Waiting for connexion...");
   Serial.println("--------------------------------------------------");
 }
 
@@ -102,7 +102,7 @@ void loop() {
     if (!deviceConnected && oldDeviceConnected) {
         delay(500);
         BLEDevice::getAdvertising()->start();
-        Serial.println("... Marketing relancé (Visible) ...");
+        Serial.println("... Marketing relaunched (Visible) ...");
         oldDeviceConnected = deviceConnected;
     }
     
