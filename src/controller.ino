@@ -93,7 +93,7 @@ void setup() {
 
   BLEDevice::getAdvertising()->start();
   
-  Serial.println("2. Bluetooth : OK ('NanoESP32-Servos')");
+  Serial.println("2. Bluetooth : OK ('Sensora Device')");
   Serial.println("3. Status : Waiting for connexion...");
   Serial.println("--------------------------------------------------");
 }
