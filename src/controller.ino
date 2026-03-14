@@ -78,7 +78,7 @@ void setup() {
   pwm.setPWMFreq(50);
   Serial.println("1. PCA9685 : OK (Frequence 50Hz)");
 
-  BLEDevice::init("NanoESP32-Servos");
+  BLEDevice::init("Sensora Device");
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
 
