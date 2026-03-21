@@ -95,6 +95,35 @@ class ServoClient:
             "delay": delay
         })
 
+    def calibrate(self, home_angle=0, step=3, delay=0.02, settle_time=0.5):
+        """Home all servos to a known position. Blocks until the Pi finishes."""
+        return self._send({
+            "cmd":         "calibrate",
+            "home_angle":  home_angle,
+            "step":        step,
+            "delay":       delay,
+            "settle_time": settle_time,
+        })
+
+    def move_by(self, servo, delta):
+        """Move a single servo by delta degrees from its tracked position."""
+        return self._send({"cmd": "move_by", "servo": servo, "delta": delta})
+
+    def move_all_by(self, deltas_matrix):
+        """
+        Move all servos by their respective deltas.
+
+        deltas_matrix: 6x6 nested list or numpy array.
+        Numpy arrays are converted to plain lists before JSON serialization.
+        """
+        if hasattr(deltas_matrix, "tolist"):
+            deltas_matrix = deltas_matrix.tolist()
+        return self._send({"cmd": "move_all_by", "deltas_matrix": deltas_matrix})
+
+    def get_positions(self):
+        """Return the tracked position of every servo from the Pi."""
+        return self._send({"cmd": "get_positions"})
+
     def __enter__(self):
         self.connect()
         return self

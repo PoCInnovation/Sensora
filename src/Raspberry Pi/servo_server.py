@@ -15,6 +15,11 @@ Commands (JSON over TCP):
     {"cmd": "release_all"}
     {"cmd": "get", "servo": 0}
     {"cmd": "sweep", "servo": 0, "start": 0, "end": 180}
+    {"cmd": "calibrate"}
+    {"cmd": "calibrate", "home_angle": 0, "step": 3, "delay": 0.02, "settle_time": 0.5}
+    {"cmd": "move_by", "servo": 0, "delta": 15.0}
+    {"cmd": "move_all_by", "deltas_matrix": [[d00,...,d05], ..., [d50,...,d55]]}
+    {"cmd": "get_positions"}
 """
 
 import socket
@@ -84,6 +89,41 @@ class ServoServer:
             elif cmd == "ping":
                 return {"status": "ok", "message": "pong"}
 
+            elif cmd == "calibrate":
+                home_angle  = data.get("home_angle",  0)
+                step        = data.get("step",        3)
+                delay       = data.get("delay",       0.02)
+                settle_time = data.get("settle_time", 0.5)
+                self.controller.calibrate(
+                    home_angle=home_angle,
+                    step=step,
+                    delay=delay,
+                    settle_time=settle_time,
+                )
+                return {"status": "ok", "action": "calibrated", "home_angle": home_angle}
+
+            elif cmd == "move_by":
+                servo = data["servo"]
+                delta = data["delta"]
+                new_angle = self.controller.move_by(servo, delta)
+                return {"status": "ok", "servo": servo, "new_angle": new_angle}
+
+            elif cmd == "move_all_by":
+                # Accept either a 6x6 nested list ("deltas_matrix") or a flat
+                # id->delta dict ("deltas") for flexibility.
+                if "deltas_matrix" in data:
+                    matrix = data["deltas_matrix"]
+                    deltas = {row * 6 + col: matrix[row][col]
+                              for row in range(len(matrix))
+                              for col in range(len(matrix[row]))}
+                else:
+                    deltas = {int(k): float(v) for k, v in data["deltas"].items()}
+                new_positions = self.controller.move_all_by(deltas)
+                return {"status": "ok", "updated": len(new_positions)}
+
+            elif cmd == "get_positions":
+                return {"status": "ok", "positions": self.controller.get_positions()}
+
             else:
                 return {"status": "error", "message": f"Unknown command: {cmd}"}
 
@@ -134,7 +174,7 @@ class ServoServer:
             server.settimeout(1.0)
 
             print(f"Servo server listening on {self.host}:{self.port}")
-            print("Commands: set, set_multiple, set_all, center, release, release_all, get, sweep, ping")
+            print("Commands: set, set_multiple, set_all, center, release, release_all, get, sweep, ping, calibrate, move_by, move_all_by, get_positions")
 
             try:
                 while self.running:

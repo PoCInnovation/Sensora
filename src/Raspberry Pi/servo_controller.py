@@ -20,6 +20,14 @@ Wiring:
 import time
 from adafruit_servokit import ServoKit
 
+# Calibration constants (override at call-site if needed)
+HOME_ANGLE  = 0      # degrees — physical rest/home position
+MIN_ANGLE   = 0      # hard lower bound for all servos
+MAX_ANGLE   = 180    # hard upper bound for all servos
+CALIB_STEP  = 3      # degrees per step during homing sweep
+CALIB_DELAY = 0.02   # seconds between steps (smooth, not violent)
+SETTLE_TIME = 0.5    # seconds to wait after all servos reach home
+
 
 class MultiServoController:
     def __init__(self, num_servos=36):
@@ -39,6 +47,10 @@ class MultiServoController:
         # Default pulse width range (adjust per servo specs)
         # Common values: 500-2500us or 1000-2000us
         self.set_pulse_range_all(500, 2500)
+
+        # Software-tracked positions. None = unknown (not yet calibrated).
+        # Populated by calibrate(); required before move_by() can be called.
+        self._current_positions: dict[int, float] = {i: None for i in range(self.num_servos)}
 
         print(f"Initialized {num_servos} servos on {len(self.boards)} PCA9685 boards")
 
@@ -108,6 +120,80 @@ class MultiServoController:
         for angle in angles:
             self.set_angle(servo_id, angle)
             time.sleep(delay)
+
+    def calibrate(
+        self,
+        home_angle: float = HOME_ANGLE,
+        step: float = CALIB_STEP,
+        delay: float = CALIB_DELAY,
+        settle_time: float = SETTLE_TIME,
+    ) -> None:
+        """
+        Home all servos to home_angle by sweeping from the opposite extreme.
+
+        Sweeping from the far end guarantees every servo physically reaches
+        home_angle regardless of its unknown starting position.
+        Blocks until complete, then sets _current_positions for all servos.
+        """
+        print(f"[Calibrate] Homing {self.num_servos} servos to {home_angle}°...")
+
+        # Sweep from the opposite extreme toward home_angle
+        if home_angle <= 90:
+            start_angle = MAX_ANGLE
+            step_signed = -abs(int(step))
+            stop = int(home_angle) - 1   # inclusive endpoint for range
+        else:
+            start_angle = MIN_ANGLE
+            step_signed = abs(int(step))
+            stop = int(home_angle) + 1
+
+        for angle in range(int(start_angle), stop, step_signed):
+            for sid in range(self.num_servos):
+                self.set_angle(sid, angle)
+            time.sleep(delay)
+
+        # Final precise set to exact home_angle
+        for sid in range(self.num_servos):
+            self.set_angle(sid, home_angle)
+        time.sleep(settle_time)
+
+        for sid in range(self.num_servos):
+            self._current_positions[sid] = float(home_angle)
+
+        print(f"[Calibrate] Done. All {self.num_servos} servos at {home_angle}°.")
+
+    def move_by(self, servo_id: int, delta: float) -> float:
+        """
+        Move servo_id by delta degrees relative to its tracked position.
+
+        Raises RuntimeError if calibrate() has not been called yet.
+        Returns the new absolute angle (clamped to [MIN_ANGLE, MAX_ANGLE]).
+        """
+        current = self._current_positions.get(servo_id)
+        if current is None:
+            raise RuntimeError(
+                f"Servo {servo_id} has no known position. Run calibrate() first."
+            )
+        new_angle = max(MIN_ANGLE, min(MAX_ANGLE, current + delta))
+        self.set_angle(servo_id, new_angle)
+        self._current_positions[servo_id] = new_angle
+        return new_angle
+
+    def move_all_by(self, deltas: dict) -> dict:
+        """
+        Move multiple servos by their respective deltas.
+
+        deltas: {servo_id: delta_degrees, ...}
+        Returns {servo_id: new_absolute_angle, ...}.
+        """
+        new_positions = {}
+        for servo_id, delta in deltas.items():
+            new_positions[int(servo_id)] = self.move_by(int(servo_id), float(delta))
+        return new_positions
+
+    def get_positions(self) -> dict:
+        """Return a copy of the current tracked positions for all servos."""
+        return dict(self._current_positions)
 
 
 # Quick test
