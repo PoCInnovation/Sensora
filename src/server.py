@@ -1,5 +1,6 @@
 import asyncio
 import os
+import json
 import numpy as np
 from dotenv import load_dotenv
 from bleak import BleakClient
@@ -8,86 +9,96 @@ from bleak import BleakClient
 load_dotenv()
 ADDRESS_MAC = os.getenv("ESP32_MAC_ADRESS")
 CHARACTERISTIC_UUID = "3c5454f6-b1f7-4206-89f9-04677f4f467d"
+SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
+SERVER_PORT = int(os.getenv("SERVER_PORT", "5001"))
 
-# -- PARAMETERS
 MAX_SERVOS = 16
-ANGLE_MAX_HARDWARE = 180
-MULTIPLIER_ANGLE = 90
-SLEEP_BETWEEN_COMMANDS = 0.05
-SMOOTH_STEP_SIZE = 5
-SMOOTH_STEP_DELAY = 0.02
-# DEPTH_PATCHES = np.array([
-#     [0.12, 0.15, 0.20, 0.35, 0.48, 0.55],
-#     [0.10, 0.14, 0.18, 0.30, 0.42, 0.50],
-#     [0.08, 0.11, 0.16, 0.28, 0.40, 0.47],
-#     [0.07, 0.10, 0.15, 0.25, 0.36, 0.44],
-#     [0.06, 0.09, 0.13, 0.22, 0.33, 0.41],
-#     [0.05, 0.08, 0.12, 0.20, 0.30, 0.38]
-# ])
+MULTIPLIER_ANGLE = 90  # normalized 0-1 → 0-90°
 
-class ServoController:
-    def __init__(self, client):
-        self.client = client
-        self.positions_history = {}
 
-    def _convert_to_angle(self, normalized_value):
-        angle = int(normalized_value * MULTIPLIER_ANGLE)
-        return max(0, min(ANGLE_MAX_HARDWARE, angle))
+async def send_matrix(client, matrix):
+    """Send each cell of the matrix as a [angle, servo_id] BLE write."""
+    rows, cols = matrix.shape
+    for r in range(rows):
+        for c in range(cols):
+            servo_id = r * cols + c
+            if servo_id >= MAX_SERVOS:
+                continue
+            angle = int(np.clip(matrix[r, c] * MULTIPLIER_ANGLE, 0, 180))
+            await client.write_gatt_char(CHARACTERISTIC_UUID, bytearray([angle, servo_id]))
 
-    async def send_servo_command(self, servo_id, angle):
-        payload = bytearray([angle, servo_id])
+
+class MatrixServer:
+    """TCP server that receives depth matrices from the IA pipeline and
+    forwards them to the Arduino via BLE."""
+
+    def __init__(self):
+        self._ble_client = None
+        self._ble_lock = asyncio.Lock()
+
+    async def _ensure_ble_connected(self):
+        if self._ble_client and self._ble_client.is_connected:
+            return True
         try:
-            await self.client.write_gatt_char(CHARACTERISTIC_UUID, payload)
-            self.positions_history[servo_id] = angle
-            await asyncio.sleep(SLEEP_BETWEEN_COMMANDS)
+            print(f"[*] Connecting to BLE device {ADDRESS_MAC}...")
+            self._ble_client = BleakClient(ADDRESS_MAC)
+            await self._ble_client.connect()
+            print("[+] BLE connected.")
+            return True
         except Exception as e:
-            print(f"[-] Failed to send Servo {servo_id}: {e}")
+            print(f"[-] BLE connection failed: {e}")
+            self._ble_client = None
+            return False
 
-    async def move_smooth(self, servo_id, current_angle, target_angle):
-        if current_angle == -1:
-            await self.send_servo_command(servo_id, target_angle)
+    async def _handle_pipeline(self, reader, writer):
+        addr = writer.get_extra_info("peername")
+        print(f"[+] Pipeline connected: {addr}")
+        buffer = ""
+
+        try:
+            while True:
+                chunk = await reader.read(4096)
+                if not chunk:
+                    break
+                buffer += chunk.decode("utf-8")
+
+                # Protocol: newline-delimited JSON — each line is a 2D matrix
+                while "\n" in buffer:
+                    line, buffer = buffer.split("\n", 1)
+                    if not line.strip():
+                        continue
+                    try:
+                        matrix = np.array(json.loads(line), dtype=float)
+                        async with self._ble_lock:
+                            if await self._ensure_ble_connected():
+                                await send_matrix(self._ble_client, matrix)
+                                response = {"status": "ok"}
+                            else:
+                                response = {"status": "error", "message": "BLE not connected"}
+                        writer.write((json.dumps(response) + "\n").encode())
+                        await writer.drain()
+                    except (json.JSONDecodeError, ValueError) as e:
+                        writer.write((json.dumps({"status": "error", "message": str(e)}) + "\n").encode())
+                        await writer.drain()
+
+        except (ConnectionResetError, asyncio.IncompleteReadError):
+            pass
+        finally:
+            print(f"[-] Pipeline disconnected: {addr}")
+            writer.close()
+
+    async def start(self):
+        if not ADDRESS_MAC:
+            print("[!] Error: ESP32_MAC_ADDRESS is missing from .env")
             return
 
-        delta = target_angle - current_angle
-        steps = abs(delta) // SMOOTH_STEP_SIZE
-        direction = 1 if delta > 0 else -1
+        server = await asyncio.start_server(self._handle_pipeline, SERVER_HOST, SERVER_PORT)
+        print(f"[*] Matrix server listening on {SERVER_HOST}:{SERVER_PORT}")
+        print(f"[*] BLE target: {ADDRESS_MAC}")
 
-        for i in range(1, steps + 1):
-            intermediate = current_angle + direction * SMOOTH_STEP_SIZE * i
-            await self.send_servo_command(servo_id, intermediate)
-            await asyncio.sleep(SMOOTH_STEP_DELAY)
+        async with server:
+            await server.serve_forever()
 
-        if self.positions_history.get(servo_id) != target_angle:
-            await self.send_servo_command(servo_id, target_angle)
 
-    async def process_matrix(self, matrix):
-        rows, cols = matrix.shape
-
-        for r in range(rows):
-            for c in range(cols):
-                servo_id = r * cols + c
-
-                if servo_id >= MAX_SERVOS:
-                    continue
-
-                target_angle = self._convert_to_angle(matrix[r, c])
-                last_angle = self.positions_history.get(servo_id, -1)
-
-                if target_angle != last_angle:
-                    await self.move_smooth(servo_id, last_angle, target_angle)
-
-async def run_sync_process(matrix):
-    if not ADDRESS_MAC:
-        print("[!] Error: ESP32_MAC_ADDRESS is missing from .env")
-        return
-
-    print(f"[*] Attempting to connect : {ADDRESS_MAC}...")
-
-    try:
-        async with BleakClient(ADDRESS_MAC) as client:
-            print("[+] Bluetooth Connected.")
-            controller = ServoController(client)
-            await controller.process_matrix(matrix)
-            print("[+] Synchronization complete.")
-    except Exception as e:
-        print(f"[!] Connection error : {e}")
+if __name__ == "__main__":
+    asyncio.run(MatrixServer().start())
