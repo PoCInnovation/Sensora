@@ -9,9 +9,10 @@
 
 #define SERVO_MIN 150
 #define SERVO_MAX 600
-#define NB_SERVOS 16
+#define NB_SERVOS 32
 
-Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
+Adafruit_PWMServoDriver pwmA = Adafruit_PWMServoDriver(0x40);
+Adafruit_PWMServoDriver pwmB = Adafruit_PWMServoDriver(0x41);
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
 
@@ -21,7 +22,13 @@ uint16_t angleToPulse(int angle) {
 
 void moveServo(int ch, int angle) {
   if (ch < 0 || ch >= NB_SERVOS) return;
-  pwm.setPWM(ch, 0, angleToPulse(angle));
+  uint16_t pulse = angleToPulse(angle);
+
+  if (ch < 16) {
+    pwmA.setPWM(ch, 0, pulse);
+  } else {
+    pwmB.setPWM(ch - 16, 0, pulse);
+  }
 }
 
 class MyServerCallbacks: public BLEServerCallbacks {
@@ -70,9 +77,12 @@ void setup() {
   Serial.println("--- SYSTEM INITIALISATION ---");
 
   Wire.begin();
-  pwm.begin();
-  pwm.setPWMFreq(50);
-  Serial.println("1. PCA9685 : OK (Frequence 50Hz)");
+  pwmA.begin();
+  pwmA.setPWMFreq(50);
+  pwmB.begin();
+  pwmB.setPWMFreq(50);
+  Serial.println("1. PCA9685 #1 (0x40): OK (Frequence 50Hz)");
+  Serial.println("2. PCA9685 #2 (0x41): OK (Frequence 50Hz)");
 
   BLEDevice::init("Sensora Device");
   BLEServer *pServer = BLEDevice::createServer();
@@ -89,8 +99,8 @@ void setup() {
 
   BLEDevice::getAdvertising()->start();
   
-  Serial.println("2. Bluetooth : OK ('Sensora Device')");
-  Serial.println("3. Status : Waiting for connexion...");
+  Serial.println("3. Bluetooth : OK ('Sensora Device')");
+  Serial.println("4. Status : Waiting for connexion...");
   Serial.println("--------------------------------------------------");
 }
 

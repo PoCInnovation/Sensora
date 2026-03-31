@@ -12,12 +12,31 @@ CHARACTERISTIC_UUID = "3c5454f6-b1f7-4206-89f9-04677f4f467d"
 SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
 SERVER_PORT = int(os.getenv("SERVER_PORT", "5001"))
 
-MAX_SERVOS = 16
 MULTIPLIER_ANGLE = 90  # normalized 0-1 → 0-90°
+TARGET_ROWS = int(os.getenv("MATRIX_ROWS", "4"))
+TARGET_COLS = int(os.getenv("MATRIX_COLS", "8"))
+
+# Two PCA9685 boards of 16 channels each.
+MAX_SERVOS = 32
+
+
+def resize_matrix(matrix, rows, cols):
+    """Resize matrix to target shape using nearest-neighbor sampling."""
+    if matrix.ndim != 2:
+        raise ValueError("Matrix must be 2D")
+
+    if matrix.shape == (rows, cols):
+        return matrix
+
+    src_rows, src_cols = matrix.shape
+    row_idx = np.clip(np.round(np.linspace(0, src_rows - 1, rows)).astype(int), 0, src_rows - 1)
+    col_idx = np.clip(np.round(np.linspace(0, src_cols - 1, cols)).astype(int), 0, src_cols - 1)
+    return matrix[row_idx][:, col_idx]
 
 
 async def send_matrix(client, matrix):
     """Send each cell of the matrix as a [angle, servo_id] BLE write."""
+    matrix = resize_matrix(matrix, TARGET_ROWS, TARGET_COLS)
     rows, cols = matrix.shape
     for r in range(rows):
         for c in range(cols):
