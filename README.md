@@ -26,6 +26,26 @@ Sensora offers a new approach: transforming visual information into tactile and 
 
 [To be completed]
 
+## 🚀 Getting Started
+
+### Servo Controllers
+
+The project supports two servo control implementations:
+
+#### Option 1: I2C + PCA9685 (Local Control)
+```bash
+python3 src/Raspberry\ Pi/servo_controller.py
+```
+
+#### Option 2: BLE + ESP32 (Wireless Control)
+```bash
+python3 src/Raspberry\ Pi/ble_servo_controller.py
+```
+
+**Requirements for BLE:**
+- Ensure `ESP32_MAC_ADDRESS` is set in your `.env` file
+- Install dependencies: `pip install bleak python-dotenv numpy`
+
 ## Get Involved
 
 You're invited to join this project! Check out the [contributing guide](./CONTRIBUTING.md).
